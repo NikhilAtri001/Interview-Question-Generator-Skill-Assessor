@@ -9,23 +9,23 @@ Loads, cleans, and preprocesses THREE real datasets:
   3. IT_Job_Roles_Skills.csv    — 493 IT role -> skills/certifications mapping
                                    -> source for the skill vocabulary + certs
 
-Exposes:
+Exposes:(function available for other files)
   - get_training_corpus()      -> (texts, labels) for ML classifier (resumes)
   - get_all_roles()            -> sorted list of all known roles
-  - get_skills_for_role()      -> list[str] skills for a given role
-  - get_certifications_for_role() -> certifications for a role
+  - get_skills_for_role()      -> list[str] skills for a given role(it gives skills for the particular role)
+  - get_certifications_for_role() -> certifications for a role 
   - get_jd_sample()            -> realistic sample JD text for a role
   - get_dataset_stats()        -> stats across all 3 datasets for dashboard
 """
 
-import os
-import re
+import os ##used for folders , files and paths(opearting system)
+import re ##used for text cleaning(regular expression) egPython!!!@@@ SQL###123 -> Python SQL
 import pandas as pd
-from functools import lru_cache
-from collections import Counter
+from functools import lru_cache ##lru->least recently used A decorator that stores function results in memory to avoid redundant calculations
+from collections import Counter ##used to find most common skill through their occurrence
 
-DATA_DIR    = os.path.join(os.path.dirname(__file__), "data")
-RESUME_CSV  = os.path.join(DATA_DIR, "final_merged_dataset2.csv")
+DATA_DIR    = os.path.join(os.path.dirname(__file__), "data") ##Look at the folder where this data_loader.py file is currently sitting, and dynamically glue the word data onto the end of it.
+RESUME_CSV  = os.path.join(DATA_DIR, "final_merged_dataset2.csv")##Take the folder path we just saved in DATA_DIR, and glue the file name "final_merged_dataset2.csv" right onto the end of it.
 JD_CSV      = os.path.join(DATA_DIR, "job_title_des.csv")
 SKILL_CSV   = os.path.join(DATA_DIR, "IT_Job_Roles_Skills.csv")
 
@@ -34,6 +34,7 @@ SKILL_CSV   = os.path.join(DATA_DIR, "IT_Job_Roles_Skills.csv")
 # Role normalisation — maps raw labels from BOTH datasets onto one shared
 # taxonomy of roles, so the resume classifier and JD/skill lookups agree.
 # ─────────────────────────────────────────────────────────────────────────────
+## created dictionary for the normalization purpose 
 RESUME_ROLE_NORMALISE = {
     "python_developer":        "Python Developer",
     "java_developer":          "Java Developer",
@@ -88,18 +89,18 @@ ROLE_CATEGORY = {
 # Loaders
 # ─────────────────────────────────────────────────────────────────────────────
 
-@lru_cache(maxsize=1)
-def _load_resume_df() -> pd.DataFrame:
+@lru_cache(maxsize=1)##decorator A decorator modifies the behavior of a function. maxsize means only one result
+def _load_resume_df() -> pd.DataFrame: ##internal function for training corpus (__load_resume_df) -> means it will return pd.dataframe
     """Loads the 8,234-row real resume corpus — PRIMARY ML training source."""
-    df = pd.read_csv(RESUME_CSV, encoding="utf-8")
+    df = pd.read_csv(RESUME_CSV, encoding="utf-8") ##utf-8 is a standard without é ü
     df.columns = ["resume_text", "category"]
-    df = df.dropna(subset=["resume_text", "category"])
-    df["resume_text"] = df["resume_text"].astype(str).str.strip()
-    df = df[df["resume_text"].str.len() > 30]
-    df["label"] = df["category"].str.lower().str.strip().map(RESUME_ROLE_NORMALISE)
-    df = df.dropna(subset=["label"])
-    df = df.drop_duplicates(subset=["resume_text"])
-    return df.reset_index(drop=True)
+    df = df.dropna(subset=["resume_text", "category"])## it removes missing values 
+    df["resume_text"] = df["resume_text"].astype(str).str.strip()## text processing requires strings and it is also doing extra space removal 
+    df = df[df["resume_text"].str.len() > 30]## removing very small resumes 
+    df["label"] = df["category"].str.lower().str.strip().map(RESUME_ROLE_NORMALISE)## it uses the normalize dictionary from above 
+    df = df.dropna(subset=["label"])## removes missing values from label 
+    df = df.drop_duplicates(subset=["resume_text"])## remove duplicate resume and not making the model overfitting and biased
+    return df.reset_index(drop=True) ##reseting the index after cleaning and drop=true means old index is discarded
 
 
 @lru_cache(maxsize=1)
@@ -110,7 +111,7 @@ def _load_jd_df() -> pd.DataFrame:
     df["job_title"] = df["job_title"].str.strip()
     df["label"] = df["job_title"].str.lower().str.strip().map(JD_ROLE_NORMALISE)
     df = df.dropna(subset=["label"])
-    df["description"] = df["description"].fillna("").str.strip()
+    df["description"] = df["description"].fillna("").str.strip()##fillna replace missing values with empty string 
     return df
 
 
@@ -136,7 +137,7 @@ def get_training_corpus() -> tuple[list[str], list[str]]:
     PRIMARY SOURCE: final_merged_dataset2.csv — 8,234 real resumes, 10 roles.
     """
     df = _load_resume_df()
-    return df["resume_text"].tolist(), df["label"].tolist()
+    return df["resume_text"].tolist(), df["label"].tolist()## it converts pdseries to list because every model input x needs correct answer y with it 
 
 
 def get_all_roles() -> list[str]:
